@@ -20,8 +20,6 @@
 
 Instructions to add this extension to Chromium-based browsers
 
----
-
 ## 1. Google Chrome
 
 1. Open Chrome and navigate to `chrome://extensions`.
@@ -29,16 +27,12 @@ Instructions to add this extension to Chromium-based browsers
 3. Click the **Load unpacked** button in the top-left toolbar.
 4. Select the folder containing the extension files (the folder containing `manifest.json`).
 
----
-
 ## 2. Microsoft Edge
 
 1. Open Edge and navigate to `edge://extensions`.
 2. Turn on the **Developer mode** toggle in the left sidebar menu.
 3. Click the **Load unpacked** button.
 4. Select the folder containing the extension files (the folder containing `manifest.json`).
-
----
 
 ## 3. Brave Browser
 
