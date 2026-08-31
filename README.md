@@ -9,4 +9,4 @@
 
 *Creating link from inside a folder is currently bugged, create link outside then add to folder*
 
-![App Screenshot](./assets/screenshot.png)
+![App Screenshot](screenshot.png)
