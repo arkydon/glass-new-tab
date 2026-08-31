@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Speed Dial New Tab",
+  "version": "1.0",
+  "description": "Minimalist new tab page with speed dial links, folders, and automatic favicon fetching.",
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  },
+  "permissions": [
+    "storage"
+  ]
+}
