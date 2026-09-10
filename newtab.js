@@ -314,7 +314,7 @@ function createLinkElement(item, inFolder = false, parentFolderId = null) {
   `;
 
   const img = speedItem.querySelector('img');
-  attachFaviconFallback(img, item.url, !!item.customIcon);
+  attachFaviconFallback(img, item.url, !item.customIcon);
 
   speedItem.addEventListener('click', (e) => {
     if (e.target.closest('.item-actions')) return;
@@ -328,7 +328,7 @@ function createLinkElement(item, inFolder = false, parentFolderId = null) {
 
   speedItem.querySelector('.action-btn-del').addEventListener('click', (e) => {
     e.stopPropagation();
-    promptDelete(item.id, title, inFolder, false);
+    promptDelete(item.id, title, inFolder, false, 0, parentFolderId);
   });
 
   return speedItem;
@@ -345,7 +345,7 @@ function createFolderElement(folder) {
   for (let i = 0; i < 4; i++) {
     if (previewItems[i]) {
       const faviconUrl = previewItems[i].customIcon || getFaviconUrl(previewItems[i].url);
-      const isCustom = !!previewItems[i].customIcon;
+      const isCustom = !previewItems[i].customIcon;
       previewGrid += `<img src="${faviconUrl}" class="folder-tile-img" data-url="${encodeURIComponent(previewItems[i].url)}" data-custom="${isCustom}">`;
     } else {
       previewGrid += `<div class="folder-tile-empty"></div>`;
@@ -378,7 +378,7 @@ function createFolderElement(folder) {
 
   speedItem.querySelector('.action-btn-del').addEventListener('click', (e) => {
     e.stopPropagation();
-    promptDelete(folder.id, folder.title, false, true, items.length);
+    promptDelete(folder.id, folder.title, false, true, items.length, null);
   });
 
   return speedItem;
@@ -573,8 +573,8 @@ function renderFolderModal(folderId) {
   });
 }
 
-function promptDelete(id, name, inFolder, isFolder, itemCount = 0) {
-  pendingDelete = { id, inFolder, isFolder };
+function promptDelete(id, name, inFolder, isFolder, itemCount = 0, parentFolderId = null) {
+  pendingDelete = { id, inFolder, isFolder, parentFolderId };
   const msgEl = document.getElementById('delete-modal-msg');
   if (isFolder) {
     msgEl.textContent = `Are you sure you want to delete the folder "${name}" and all ${itemCount} link(s) inside it?`;
@@ -584,23 +584,38 @@ function promptDelete(id, name, inFolder, isFolder, itemCount = 0) {
   document.getElementById('delete-modal').classList.remove('hidden');
 }
 
+function closeDeleteModal() {
+  document.getElementById('delete-modal').classList.add('hidden');
+  pendingDelete = null;
+}
+
 document.getElementById('btn-confirm-delete').addEventListener('click', () => {
   if (!pendingDelete) return;
-  const { id, inFolder, isFolder } = pendingDelete;
+  const { id, inFolder, isFolder, parentFolderId } = pendingDelete;
 
   if (isFolder) {
     speedDialData = speedDialData.filter(item => item.id !== id);
-  } else if (inFolder && activeFolderId) {
-    const folder = speedDialData.find(f => f.id === activeFolderId);
+    if (activeFolderId === id) {
+      document.getElementById('folder-view-modal').classList.add('hidden');
+      activeFolderId = null;
+    }
+  } else if (inFolder || parentFolderId) {
+    const targetFolderId = parentFolderId || activeFolderId;
+    const folder = speedDialData.find(f => f.id === targetFolderId);
     if (folder) {
       folder.items = (folder.items || []).filter(item => item.id !== id);
+    } else {
+      speedDialData.forEach(f => {
+        if (f.type === 'folder' && f.items) {
+          f.items = f.items.filter(item => item.id !== id);
+        }
+      });
     }
   } else {
     speedDialData = speedDialData.filter(item => item.id !== id);
   }
 
-  pendingDelete = null;
-  document.getElementById('delete-modal').classList.add('hidden');
+  closeDeleteModal();
   saveData();
 });
 
@@ -609,9 +624,7 @@ function closeModals() {
   document.getElementById('folder-modal').classList.add('hidden');
   document.getElementById('folder-view-modal').classList.add('hidden');
   document.getElementById('customize-modal').classList.add('hidden');
-  document.getElementById('delete-modal').classList.add('hidden');
   document.getElementById('backup-modal').classList.add('hidden');
-  pendingDelete = null;
   activeFolderId = null;
 }
 
@@ -907,14 +920,30 @@ document.querySelectorAll('.btn-close-modal').forEach(btn => {
   btn.addEventListener('click', closeModals);
 });
 
+document.querySelectorAll('.btn-close-delete').forEach(btn => {
+  btn.addEventListener('click', closeDeleteModal);
+});
+
 document.querySelectorAll('.modal-backdrop').forEach(modal => {
   modal.addEventListener('click', (e) => {
-    if (e.target === modal) closeModals();
+    if (e.target === modal) {
+      if (modal.id === 'delete-modal') {
+        closeDeleteModal();
+      } else {
+        closeModals();
+      }
+    }
   });
 });
 
 window.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closeModals();
+  if (e.key === 'Escape') {
+    if (!document.getElementById('delete-modal').classList.contains('hidden')) {
+      closeDeleteModal();
+    } else {
+      closeModals();
+    }
+  }
 });
 
 loadData();
