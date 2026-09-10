@@ -13,7 +13,7 @@
       --accent-hover: #2563eb;
       --icon-size: 52px;
       --icon-radius: 14px;
-      
+
       --ui-bg: rgba(15, 23, 42, 0.85);
       --ui-border: rgba(255, 255, 255, 0.12);
       --ui-text: #f1f5f9;
@@ -265,6 +265,18 @@
       justify-content: center;
       padding: 16px;
       z-index: 100;
+    }
+
+    #folder-view-modal {
+      z-index: 100;
+    }
+
+    #link-modal, #folder-modal, #customize-modal, #backup-modal {
+      z-index: 120;
+    }
+
+    #delete-modal {
+      z-index: 150;
     }
 
     .modal-backdrop.hidden {
@@ -651,7 +663,6 @@
     </button>
   </div>
 
-  <!-- Add / Edit Link Modal -->
   <div id="link-modal" class="modal-backdrop hidden">
     <div class="modal-content">
       <div class="modal-header">
@@ -705,7 +716,6 @@
     </div>
   </div>
 
-  <!-- Add Folder Modal -->
   <div id="folder-modal" class="modal-backdrop hidden">
     <div class="modal-content">
       <div class="modal-header">
@@ -730,7 +740,6 @@
     </div>
   </div>
 
-  <!-- Backup & Restore Modal -->
   <div id="backup-modal" class="modal-backdrop hidden">
     <div class="modal-content">
       <div class="modal-header">
@@ -762,7 +771,6 @@
     </div>
   </div>
 
-  <!-- Delete Confirmation Modal -->
   <div id="delete-modal" class="modal-backdrop hidden">
     <div class="modal-content" style="max-width: 380px;">
       <div class="modal-header">
@@ -770,7 +778,7 @@
           <div class="title-dot" style="background-color: #ef4444;"></div>
           <span>Confirm Removal</span>
         </div>
-        <button type="button" class="btn-close btn-close-modal">
+        <button type="button" class="btn-close btn-close-delete">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>
@@ -778,13 +786,12 @@
         Are you sure you want to remove this item?
       </p>
       <div class="modal-actions">
-        <button type="button" class="btn btn-secondary btn-close-modal">Cancel</button>
+        <button type="button" class="btn btn-secondary btn-close-delete">Cancel</button>
         <button type="button" id="btn-confirm-delete" class="btn btn-danger">Delete</button>
       </div>
     </div>
   </div>
 
-  <!-- Customize Appearance Modal -->
   <div id="customize-modal" class="modal-backdrop hidden">
     <div class="modal-content">
       <div class="modal-header">
@@ -887,7 +894,6 @@
     </div>
   </div>
 
-  <!-- Folder Contents Modal -->
   <div id="folder-view-modal" class="modal-backdrop hidden">
     <div class="modal-content modal-content-large">
       <div class="modal-header">
