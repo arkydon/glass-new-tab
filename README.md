@@ -13,7 +13,7 @@
 
 
 
-<img src="screenshot.png" alt="New Tab Page Screenshot" width="600" />
+<img src="ntp.jpg" alt="New Tab Page Screenshot" width="600" />
 
 
 # Extension Installation Guide
