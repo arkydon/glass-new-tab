@@ -258,12 +258,14 @@ function loadAppearance() {
       appearanceSettings = { ...defaultAppearance, ...res };
     }
     applyAppearance(appearanceSettings);
+    renderGrid();
   });
 }
 
 function saveAppearance() {
   storage.set('appearanceSettings', appearanceSettings);
   applyAppearance(appearanceSettings);
+  renderGrid();
 }
 
 function saveData() {
@@ -275,16 +277,22 @@ function saveData() {
 }
 
 function loadData() {
-  storage.get('speedDialData', (res) => {
-    if (res && Array.isArray(res) && res.length > 0) {
-      speedDialData = res;
-    } else {
-      speedDialData = defaultData;
-      storage.set('speedDialData', defaultData);
+  storage.get('appearanceSettings', (appRes) => {
+    if (appRes) {
+      appearanceSettings = { ...defaultAppearance, ...appRes };
     }
-    renderGrid();
+    applyAppearance(appearanceSettings);
+
+    storage.get('speedDialData', (dialRes) => {
+      if (dialRes && Array.isArray(dialRes) && dialRes.length > 0) {
+        speedDialData = dialRes;
+      } else {
+        speedDialData = defaultData;
+        storage.set('speedDialData', defaultData);
+      }
+      renderGrid();
+    });
   });
-  loadAppearance();
 }
 
 function renderGrid() {
@@ -904,7 +912,7 @@ document.querySelectorAll('.arrangement-btn').forEach((btn) => {
     document.querySelectorAll('.arrangement-btn').forEach((b) => b.classList.remove('active'));
     btn.classList.add('active');
     appearanceSettings.arrangement = btn.getAttribute('data-arrange');
-    renderGrid();
+    saveAppearance();
   });
 });
 
