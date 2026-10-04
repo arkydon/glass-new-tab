@@ -4,6 +4,7 @@
 - folders
 - local backup
 - wallpaper (use an optimised image)
+- separate folders and links section (optional)
 
 
  
