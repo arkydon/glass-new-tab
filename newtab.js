@@ -48,6 +48,7 @@ const defaultData = [
 ];
 
 const defaultAppearance = {
+  arrangement: 'folders-first',
   radius: 14,
   iconBgMode: 'dark',
   tintColor: '#3b82f6',
@@ -88,10 +89,17 @@ function formatTitleFromUrl(url) {
     let host = parsed.hostname.toLowerCase().replace(/^www\./, '');
     const parts = host.split('.');
     let base = parts[0];
+
+    if (parts.length > 2 && ['co', 'com', 'org', 'net', 'edu', 'gov'].includes(parts[parts.length - 2])) {
+      base = parts[parts.length - 3] || parts[0];
+    } else if (parts.length >= 2) {
+      base = parts[parts.length - 2] || parts[0];
+    }
+
     return base
       .split(/[-_]/)
       .filter(Boolean)
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   } catch {
     return url;
@@ -121,6 +129,7 @@ function attachFaviconFallback(imgElement, originalUrl, hasCustomIcon) {
     `https://${hostname}/favicon.ico`,
     placeholderSvg
   ];
+
   let step = 0;
 
   imgElement.addEventListener('error', function errorHandler() {
@@ -141,7 +150,7 @@ function createId() {
 function hexToRgb(hex) {
   let clean = (hex || '#3b82f6').replace('#', '');
   if (clean.length === 3) {
-    clean = clean.split('').map(c => c + c).join('');
+    clean = clean.split('').map((c) => c + c).join('');
   }
   const bigint = parseInt(clean, 16) || 0;
   return {
@@ -165,7 +174,7 @@ function applyAppearance(settings) {
       root.style.setProperty('--icon-bg', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${Math.min(0.92 + t * 0.08, 1)})`);
       root.style.setProperty('--ui-bg', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${0.85 + t * 0.1})`);
       root.style.setProperty('--ui-panel-bg', `rgba(${Math.floor(rgb.r * 0.95 + 10)}, ${Math.floor(rgb.g * 0.95 + 10)}, ${Math.floor(rgb.b * 0.95 + 10)}, 0.98)`);
-      root.style.setProperty('--ui-input-bg', `rgba(255, 255, 255, 0.9)`);
+      root.style.setProperty('--ui-input-bg', 'rgba(255, 255, 255, 0.9)');
       root.style.setProperty('--ui-btn-bg', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.8)`);
       root.style.setProperty('--ui-btn-hover', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.95)`);
       root.style.setProperty('--ui-text', '#ffffff');
@@ -279,16 +288,68 @@ function loadData() {
 }
 
 function renderGrid() {
-  const container = document.getElementById('grid-container');
-  container.innerHTML = '';
+  const mainContent = document.getElementById('main-content');
+  mainContent.innerHTML = '';
 
-  speedDialData.forEach((item) => {
+  const arrangement = appearanceSettings.arrangement || 'folders-first';
+  const folders = speedDialData.filter((item) => item.type === 'folder');
+  const links = speedDialData.filter((item) => item.type === 'link');
+
+  if (arrangement === 'separate') {
+    if (folders.length > 0) {
+      const folderSection = document.createElement('div');
+      folderSection.className = 'section-block';
+      folderSection.innerHTML = `
+        <div class="section-header">Folders (${folders.length})</div>
+        <div class="grid-container"></div>
+      `;
+      const grid = folderSection.querySelector('.grid-container');
+      folders.forEach((f) => grid.appendChild(createFolderElement(f)));
+      mainContent.appendChild(folderSection);
+    }
+
+    if (links.length > 0) {
+      const linkSection = document.createElement('div');
+      linkSection.className = 'section-block';
+      linkSection.innerHTML = `
+        <div class="section-header">Bookmarks (${links.length})</div>
+        <div class="grid-container"></div>
+      `;
+      const grid = linkSection.querySelector('.grid-container');
+      links.forEach((l) => grid.appendChild(createLinkElement(l, false, null)));
+      mainContent.appendChild(linkSection);
+    }
+
+    if (folders.length === 0 && links.length === 0) {
+      const emptyGrid = document.createElement('div');
+      emptyGrid.className = 'grid-container';
+      mainContent.appendChild(emptyGrid);
+    }
+    return;
+  }
+
+  let orderedItems = [];
+  if (arrangement === 'folders-first') {
+    orderedItems = [...folders, ...links];
+  } else if (arrangement === 'folders-last') {
+    orderedItems = [...links, ...folders];
+  } else {
+    orderedItems = [...speedDialData];
+  }
+
+  const container = document.createElement('div');
+  container.className = 'grid-container';
+  container.id = 'grid-container';
+
+  orderedItems.forEach((item) => {
     if (item.type === 'link') {
       container.appendChild(createLinkElement(item, false, null));
     } else if (item.type === 'folder') {
       container.appendChild(createFolderElement(item));
     }
   });
+
+  mainContent.appendChild(container);
 }
 
 function createLinkElement(item, inFolder = false, parentFolderId = null) {
@@ -303,10 +364,15 @@ function createLinkElement(item, inFolder = false, parentFolderId = null) {
       <img src="${faviconUrl}" alt="${title}">
       <div class="item-actions">
         <button type="button" class="action-btn action-btn-edit" title="Edit / Move">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
         </button>
         <button type="button" class="action-btn action-btn-del" title="Delete bookmark">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M18 6L6 18M6 6l12 12"></path>
+          </svg>
         </button>
       </div>
     </div>
@@ -314,7 +380,7 @@ function createLinkElement(item, inFolder = false, parentFolderId = null) {
   `;
 
   const img = speedItem.querySelector('img');
-  attachFaviconFallback(img, item.url, !item.customIcon);
+  attachFaviconFallback(img, item.url, Boolean(item.customIcon));
 
   speedItem.addEventListener('click', (e) => {
     if (e.target.closest('.item-actions')) return;
@@ -341,31 +407,33 @@ function createFolderElement(folder) {
   const items = folder.items || [];
   const previewItems = items.slice(0, 4);
 
-  let previewGrid = `<div class="folder-tile-grid">`;
+  let previewGrid = '<div class="folder-tile-grid">';
   for (let i = 0; i < 4; i++) {
     if (previewItems[i]) {
       const faviconUrl = previewItems[i].customIcon || getFaviconUrl(previewItems[i].url);
-      const isCustom = !previewItems[i].customIcon;
+      const isCustom = Boolean(previewItems[i].customIcon);
       previewGrid += `<img src="${faviconUrl}" class="folder-tile-img" data-url="${encodeURIComponent(previewItems[i].url)}" data-custom="${isCustom}">`;
     } else {
-      previewGrid += `<div class="folder-tile-empty"></div>`;
+      previewGrid += '<div class="folder-tile-empty"></div>';
     }
   }
-  previewGrid += `</div>`;
+  previewGrid += '</div>';
 
   speedItem.innerHTML = `
     <div class="icon-tile">
       ${previewGrid}
       <div class="item-actions">
         <button type="button" class="action-btn action-btn-del" title="Delete folder">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M18 6L6 18M6 6l12 12"></path>
+          </svg>
         </button>
       </div>
     </div>
     <span class="item-label">${folder.title}</span>
   `;
 
-  speedItem.querySelectorAll('.folder-tile-img').forEach(fImg => {
+  speedItem.querySelectorAll('.folder-tile-img').forEach((fImg) => {
     const rawUrl = decodeURIComponent(fImg.getAttribute('data-url') || '');
     const isCustom = fImg.getAttribute('data-custom') === 'true';
     attachFaviconFallback(fImg, rawUrl, isCustom);
@@ -387,7 +455,7 @@ function createFolderElement(folder) {
 function populateFolderSelect(selectedFolderId = '') {
   const select = document.getElementById('link-folder-select');
   select.innerHTML = '<option value="">Main Screen (No Folder)</option>';
-  speedDialData.forEach(item => {
+  speedDialData.forEach((item) => {
     if (item.type === 'folder') {
       const opt = document.createElement('option');
       opt.value = item.id;
@@ -520,10 +588,15 @@ function openBackupModal() {
 }
 
 function openCustomizeModal() {
+  const currentArrangement = appearanceSettings.arrangement || 'folders-first';
+  document.querySelectorAll('.arrangement-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.getAttribute('data-arrange') === currentArrangement);
+  });
+
   document.getElementById('opt-radius').value = appearanceSettings.radius;
   document.getElementById('radius-val').textContent = `${appearanceSettings.radius}px`;
 
-  document.querySelectorAll('.icon-bg-btn').forEach(btn => {
+  document.querySelectorAll('.icon-bg-btn').forEach((btn) => {
     btn.classList.toggle('active', btn.getAttribute('data-mode') === appearanceSettings.iconBgMode);
   });
 
@@ -546,7 +619,7 @@ function openFolderModal(folderId) {
 }
 
 function renderFolderModal(folderId) {
-  const folder = speedDialData.find(item => item.id === folderId);
+  const folder = speedDialData.find((item) => item.id === folderId);
   if (!folder) {
     closeModals();
     return;
@@ -568,7 +641,7 @@ function renderFolderModal(folderId) {
     return;
   }
 
-  folder.items.forEach(item => {
+  folder.items.forEach((item) => {
     container.appendChild(createLinkElement(item, true, folderId));
   });
 }
@@ -594,25 +667,25 @@ document.getElementById('btn-confirm-delete').addEventListener('click', () => {
   const { id, inFolder, isFolder, parentFolderId } = pendingDelete;
 
   if (isFolder) {
-    speedDialData = speedDialData.filter(item => item.id !== id);
+    speedDialData = speedDialData.filter((item) => item.id !== id);
     if (activeFolderId === id) {
       document.getElementById('folder-view-modal').classList.add('hidden');
       activeFolderId = null;
     }
   } else if (inFolder || parentFolderId) {
     const targetFolderId = parentFolderId || activeFolderId;
-    const folder = speedDialData.find(f => f.id === targetFolderId);
+    const folder = speedDialData.find((f) => f.id === targetFolderId);
     if (folder) {
-      folder.items = (folder.items || []).filter(item => item.id !== id);
+      folder.items = (folder.items || []).filter((item) => item.id !== id);
     } else {
-      speedDialData.forEach(f => {
+      speedDialData.forEach((f) => {
         if (f.type === 'folder' && f.items) {
-          f.items = f.items.filter(item => item.id !== id);
+          f.items = f.items.filter((item) => item.id !== id);
         }
       });
     }
   } else {
-    speedDialData = speedDialData.filter(item => item.id !== id);
+    speedDialData = speedDialData.filter((item) => item.id !== id);
   }
 
   closeDeleteModal();
@@ -690,7 +763,7 @@ function processLocalWallpaper(file) {
     img.onload = () => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      
+
       const maxW = 1600;
       const maxH = 900;
       let w = img.width;
@@ -760,12 +833,12 @@ document.getElementById('link-form').addEventListener('submit', (e) => {
 
   if (editId) {
     if (originalFolderId) {
-      const origFolder = speedDialData.find(f => f.id === originalFolderId);
+      const origFolder = speedDialData.find((f) => f.id === originalFolderId);
       if (origFolder && origFolder.items) {
-        origFolder.items = origFolder.items.filter(i => i.id !== editId);
+        origFolder.items = origFolder.items.filter((i) => i.id !== editId);
       }
     } else {
-      speedDialData = speedDialData.filter(i => i.id !== editId);
+      speedDialData = speedDialData.filter((i) => i.id !== editId);
     }
 
     const updatedItem = {
@@ -777,7 +850,7 @@ document.getElementById('link-form').addEventListener('submit', (e) => {
     };
 
     if (targetFolderId) {
-      const targetFolder = speedDialData.find(f => f.id === targetFolderId);
+      const targetFolder = speedDialData.find((f) => f.id === targetFolderId);
       if (targetFolder) {
         if (!targetFolder.items) targetFolder.items = [];
         targetFolder.items.push(updatedItem);
@@ -795,7 +868,7 @@ document.getElementById('link-form').addEventListener('submit', (e) => {
     };
 
     if (targetFolderId) {
-      const folder = speedDialData.find(f => f.id === targetFolderId);
+      const folder = speedDialData.find((f) => f.id === targetFolderId);
       if (folder) {
         if (!folder.items) folder.items = [];
         folder.items.push(newLinkObject);
@@ -826,13 +899,22 @@ document.getElementById('folder-form').addEventListener('submit', (e) => {
   closeModals();
 });
 
+document.querySelectorAll('.arrangement-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.arrangement-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    appearanceSettings.arrangement = btn.getAttribute('data-arrange');
+    renderGrid();
+  });
+});
+
 document.getElementById('opt-radius').addEventListener('input', (e) => {
   appearanceSettings.radius = parseInt(e.target.value, 10);
   document.getElementById('radius-val').textContent = `${appearanceSettings.radius}px`;
   applyAppearance(appearanceSettings);
 });
 
-document.querySelectorAll('.radius-preset').forEach(btn => {
+document.querySelectorAll('.radius-preset').forEach((btn) => {
   btn.addEventListener('click', () => {
     const r = parseInt(btn.getAttribute('data-radius'), 10);
     appearanceSettings.radius = r;
@@ -842,9 +924,9 @@ document.querySelectorAll('.radius-preset').forEach(btn => {
   });
 });
 
-document.querySelectorAll('.icon-bg-btn').forEach(btn => {
+document.querySelectorAll('.icon-bg-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.icon-bg-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.icon-bg-btn').forEach((b) => b.classList.remove('active'));
     btn.classList.add('active');
     appearanceSettings.iconBgMode = btn.getAttribute('data-mode');
     applyAppearance(appearanceSettings);
@@ -856,7 +938,7 @@ document.getElementById('opt-tint-color').addEventListener('input', (e) => {
   applyAppearance(appearanceSettings);
 });
 
-document.querySelectorAll('.swatch-btn').forEach(btn => {
+document.querySelectorAll('.swatch-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
     const color = btn.getAttribute('data-color');
     appearanceSettings.tintColor = color;
@@ -882,7 +964,7 @@ document.getElementById('bg-dim-input').addEventListener('input', (e) => {
   applyAppearance(appearanceSettings);
 });
 
-document.querySelectorAll('.preset-btn').forEach(btn => {
+document.querySelectorAll('.preset-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
     const url = btn.getAttribute('data-url');
     document.getElementById('bg-url-input').value = url;
@@ -916,15 +998,15 @@ document.getElementById('btn-add-link-to-current-folder').addEventListener('clic
 });
 document.getElementById('btn-close-folder-view').addEventListener('click', closeModals);
 
-document.querySelectorAll('.btn-close-modal').forEach(btn => {
+document.querySelectorAll('.btn-close-modal').forEach((btn) => {
   btn.addEventListener('click', closeModals);
 });
 
-document.querySelectorAll('.btn-close-delete').forEach(btn => {
+document.querySelectorAll('.btn-close-delete').forEach((btn) => {
   btn.addEventListener('click', closeDeleteModal);
 });
 
-document.querySelectorAll('.modal-backdrop').forEach(modal => {
+document.querySelectorAll('.modal-backdrop').forEach((modal) => {
   modal.addEventListener('click', (e) => {
     if (e.target === modal) {
       if (modal.id === 'delete-modal') {
